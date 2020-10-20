@@ -1,0 +1,20 @@
+Command		arguments	hash
+ADD		    NO          201
+SUB		    NO          234
+MUL		    NO          238
+DIV		    NO          227
+NEG		    NO          218
+
+SINUS		NO          402
+COS		    NO          229
+SQRT		NO          330
+POW		    NO          246
+
+PUSH		ELEM        320
+POP		    NO          239
+
+IN		    NO          151
+OUT		    NO          248
+DUMP		NO          310
+HLT		    NO          232
+
