@@ -5,6 +5,10 @@
 #define PROC_ENUM_H
 
 
+
+/*!@enum Commands
+ * Commands with numbers from 0 to 14
+ */
 enum Commands{
 #define DEF_CMD(name, num, code) CMD_##name = num,
 #include "commands.h"
