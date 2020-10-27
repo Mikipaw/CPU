@@ -37,7 +37,9 @@ private:
     Stack<double> cpu_stack = Stack<double>(1);
     size_t number_of_commands = 0;
     const char* name = "Unnamed CPU";
-    double* reg = nullptr;
+    double* reg     = nullptr;
+    double* array   = nullptr;
+    int* mark       = nullptr;
 
     int id = 0;
     const int version = 2;
@@ -49,10 +51,33 @@ public:
     id                      (my_id),
     reg                     (new double[4]),
     cpu_stack               (1, "CPU Stack"),
+    mark                    (new int[4]),
     name                    (new_name){
         for(int i = 0; i < 4; ++i) {
             reg[i] = 0;
+            mark[i] = 0;
         }
+        FILE* input = fopen("Output_file.txt", "rb");
+        assert(input != nullptr);
+
+        size_t size_of_file = Size_of_file(input);
+        size_t non = 0;
+
+        char* text = simple_text_from_file(input, size_of_file + 1, &non);
+        fclose(input);
+
+        array = (double*) calloc(non + 1, sizeof(double));
+
+        double doub = 0;
+        int i = 0;
+        int j = 0;
+        size_t lenstr = strlen(text);
+        while(i < lenstr) {
+            sscanf(text + i, "%lf", &doub);
+            array[j++] = doub;
+            i+=(2 + ((int) doub)/10);
+        }
+        number_of_commands = non;
     };
 
 
@@ -60,9 +85,9 @@ public:
     *  @method void Work().
     *  @brief  Executes commands from given file.
     *
-    *  @return a bool - true if operation was successful, false - if not
+    *  @return an integer - error code.
     */
-    void
+    int
     Work();
 
     [[nodiscard]] const char* Get_name()    const { return name; };
@@ -72,40 +97,35 @@ public:
     [[nodiscard]] double Get_reg (int number) const { return reg[number]; };
 
     ~CPU(){
-        delete [] reg;
+        free(reg);
+        free(array);
+        free(mark);
     }
 
 };
 
 
-void CPU::Work(){
-    FILE* input = fopen("Output_file.txt", "rb");
-    assert(input != nullptr);
-    //fseek(input, 0, SEEK_SET);
-    int num_of_command = 0;
-
-
+int CPU::Work(){
     double first    = 0;
     double second   = 0;
     int    integ    = 0;
-    for(int i = 0; i < number_of_commands; ++i) {
-        fscanf(input, "%d", &num_of_command);
-        switch (num_of_command) {
+    for(int i = 0; i <= number_of_commands; ++i) {
+        integ = (int) array[i];
+        switch (integ) {
         #define DEF_CMD(name, num, code){                       \
                     case num:                                   \
-                    code                                        \
+                    code;                                       \
                     break;                                      \
                 }
         #include "commands.h"
 
         #undef DEF_CMD
             default:
-                return;
+                return ERROR_UNKNOWN_COMMAND;
         }
-
     }
 
-    fclose(input);
+    return ALL_OK;
 }
 
 
