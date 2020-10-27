@@ -71,45 +71,81 @@ int Assembler(int* number_of_cmds) {
     simple_string* commands = (simple_string*) calloc(number_of_commands, sizeof(simple_string));
     commands[0].string = command_text;
 
+    int* pointers = (int*) calloc(5, sizeof(int));
+
     Arrange_str_ptrs(commands, number_of_commands, command_text);
+
+    *number_of_cmds = number_of_commands;
+
+    int shift = 0;
+
+    for(int i = 0; i < number_of_commands; ++i){
+        if(Is_pop(commands[i].string) || commands[i].string[0] == 'J') shift++;
+        if(Is_push(commands[i].string)){
+            if(commands[i].string[5] != 'R') shift++;
+            shift++;
+        }
+        if(commands[i].string[1] == ':'){
+            pointers[commands[i].string[0] - '0'] = i + shift - 1;
+            (*number_of_cmds)--;
+        }
+    }
+
+    const char* eqlty[] = {"JA", "JAE", "JB", "JBE", "JE", "JNE"};
 
     int rid = 0;
     char* str = nullptr;
     for(int i = 0; i < number_of_commands; ++i) {
-        #define DEF_CMD(name, number, code){                                    \
-            if(str_cmp_upg(#name, commands[i].string) && #name[2] != 'P'){      \
-                fprintf(output, "%d\n", number);                                \
-                continue;                                                       \
-                }                                                               \
-                else if(Is_push(commands[i].string)) {                          \
-                    rid =  commands[i].string[6] - 'A' + 1;                     \
-                    str = &commands[i].string[5];                               \
-                    if(rid < 1 || rid > 4){                                     \
-                        rid = 0;                                                \
-                        fprintf(output, "9\t%d\t%s", rid, str);                 \
-                    }                                                           \
-                    else fprintf(output, "9\t%d\n", rid);                       \
-                    continue;                                                   \
-                }                                                               \
-                else if(Is_pop(commands[i].string)) {                           \
-                    if(commands[i].size <= 5){                                  \
-                        rid = 0;                                                \
-                        fprintf(output, "10\t0\n");                               \
-                    }                                                           \
-                    else{                                                       \
-                        rid =  commands[i].string[5] - 'A' + 1;                 \
-                        fprintf(output, "10\t%d\n", rid);                       \
-                    }                                                           \
-                    continue;                                                   \
-                }                                                               \
-        }
+        #define DEF_CMD(name, number, code){                                            \
+                if(Is_push(commands[i].string)) {                                       \
+                    rid =  commands[i].string[6] - 'A' + 1;                             \
+                    str = &commands[i].string[5];                                       \
+                    if(rid < 1 || rid > 4){                                             \
+                        rid = 0;                                                        \
+                        fprintf(output, "9 %d %s", rid, str);                           \
+                    }                                                                   \
+                    else fprintf(output, "9 %d\n", rid);                                \
+                    continue;                                                           \
+                }                                                                       \
+                else if(Is_pop(commands[i].string)) {                                   \
+                    if(commands[i].size <= 5){                                          \
+                        rid = 0;                                                        \
+                        fprintf(output, "10 0\n");                                      \
+                    }                                                                   \
+                    else{                                                               \
+                        rid =  commands[i].string[5] - 'A' + 1;                         \
+                        fprintf(output, "10 %d\n", rid);                                \
+                    }                                                                   \
+                    continue;                                                           \
+                    }                                                                   \
+                    else if(commands[i].string[1] == 'M' &&                             \
+                    commands[i].string[2] == 'P' && commands[i].string[4] == ':'){      \
+                        rid = (commands[i].string[5] - '0');                            \
+                        fprintf(output, "15 %d\n", pointers[rid]);                      \
+                        continue;                                                       \
+                    }                                                                   \
+                    else if(commands[i].string[0] == 'J'){                              \
+                        sscanf(commands[i].string, "%s", str);                          \
+                        for(int j = 0; j < 6; ++j){                                     \
+                            if(str_cmp(str, eqlty[j])){                                 \
+                                rid = (commands[i].string[4 + j%2] - '0');              \
+                                fprintf(output, "%d %d  \n", (j + 16), pointers[rid]);  \
+                                break;                                                  \
+                            }                                                           \
+                        }                                                               \
+                        continue;                                                       \
+                    }                                                                   \
+                    else if(str_cmp_upg(#name, commands[i].string)){                    \
+                        fprintf(output, "%d\n", number);                                \
+                        continue;                                                       \
+                    }                                                                   \
+        }                                                                               \
+
         #include "commands.h"
 
         #undef DEF_CMD
     }
 
-
-    *number_of_cmds = number_of_commands;
 
     fclose(command_file);
     free(command_text);
@@ -136,6 +172,7 @@ int ASM_Listing(){
     rip[0].string = (char*) regs;
 
     Arrange_str_ptrs(rip, 5, (char*) regs);
+    const char* eqlty[] = {"JA", "JAE", "JB", "JBE", "JE", "JNE"};
 
     while (!feof(ASM_Code)){
         fscanf(ASM_Code, "%d", &cmd);
@@ -145,27 +182,42 @@ int ASM_Listing(){
                 fscanf(ASM_Code, "%d", &rid);                                                           \
                 if(rid == 0) {                                                                          \
                     fscanf(ASM_Code, "%lf", &number);                                                   \
-                    fprintf(ASM_Listing, "%d\t%d\t%d\t%lf\t\t%s %lf\n",                                 \
+                    fprintf(ASM_Listing, "%X\t%d\t%d\t%lf\t\t%s %lf\n",                                 \
                     pos++, num, rid, number, #name, number);                                            \
                     }                                                                                   \
                     else                                                                                \
-                    fprintf(ASM_Listing, "%d\t%d\t%d\t\t\t\t\t%s %s\n",                                 \
+                    fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t\t\t%s %s\n",                                 \
                     pos, num, rid, #name, rip[rid].string);                                             \
             pos+=2;                                                                                     \
             continue;                                                                                   \
             }                                                                                           \
             else if(cmd == CMD_POP){                                                                    \
                 fscanf(ASM_Code, "%d", &rid);                                                           \
-                if(rid == 0) fprintf(ASM_Listing, "%d\t10\t\t\t\t\t\tPOP\n", pos++);                    \
+                if(rid == 0) fprintf(ASM_Listing, "%X\t10\t\t\t\t\t\tPOP\n", pos++);                    \
                 else {                                                                                  \
-                    fprintf(ASM_Listing, "%d\t10\t%d\t\t\t\t\tPOP  %s\n",                               \
+                    fprintf(ASM_Listing, "%X\t10\t%d\t\t\t\t\tPOP  %s\n",                               \
                     pos++, rid, rip[rid].string);                                                       \
                 }                                                                                       \
+                                                                                                        \
                 pos++;                                                                                  \
                 continue;                                                                               \
                 }                                                                                       \
-            else if(cmd == num && cmd != CMD_PUSH && cmd != CMD_POP){                                   \
-                fprintf(ASM_Listing, "%d\t%d\t\t\t\t\t\t%s\n", pos++, num, #name);                      \
+            else if(cmd == CMD_JMP){                                                                    \
+                fscanf(ASM_Code, "%d", &rid);                                                           \
+                fprintf(ASM_Listing, "%X\t15\t%d\t\t\t\t\tJMP %d\n",                                    \
+                pos++, rid + 1, rid + 1);                                                               \
+                pos++;                                                                                  \
+                continue;                                                                               \
+                }                                                                                       \
+                else if(cmd > 15 && cmd < 22){                                                          \
+                    fscanf(ASM_Code, "%d", &rid);                                                       \
+                    fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t\t\t%s %d\n",                                 \
+                    pos++, cmd, rid, eqlty[cmd - 16], rid);                                             \
+                    continue;                                                                           \
+                                                                                                        \
+                }                                                                                       \
+            else if(cmd == num){                                                                        \
+                fprintf(ASM_Listing, "%X\t%d\t\t\t\t\t\t%s\n", pos++, num, #name);                      \
                 continue;                                                                               \
             }                                                                                           \
         }                                                                                               \
