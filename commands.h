@@ -9,38 +9,49 @@ if(integ == 0){                             \
     cpu_stack.push(second);                 \
     }                                       \
     else {                                  \
-        cpu_stack.push(reg[integ]);         \
+        cpu_stack.push(reg[integ-1]);       \
     }                                       \
 };                                          \
 
 #define DO_POP {                        \
 integ = (int) array[++i];               \
 if(integ == 0) cpu_stack.pop();         \
-else cpu_stack.pop(&reg[integ]);        \
+else cpu_stack.pop(&reg[integ-1]);      \
 };                                      \
 
 #define DO_ADD {                    \
+if(cpu_stack.Get_Size() < 2)        \
+{                                   \
+Stack_info(cpu_stack);              \
+    return EMPTY_STACK;             \
+}                                   \
 cpu_stack.pop(&first);              \
 cpu_stack.pop(&second);             \
 cpu_stack.push(first + second);     \
 };                                  \
 
 #define DO_SUB {                    \
+if(cpu_stack.Get_Size() < 2)        \
+    return EMPTY_STACK;             \
 cpu_stack.pop(&first);              \
 cpu_stack.pop(&second);             \
-cpu_stack.push(first - second);     \
+cpu_stack.push(second - first);     \
 };                                  \
 
 #define DO_MUL {                    \
+if(cpu_stack.Get_Size() < 2)        \
+    return EMPTY_STACK;             \
 cpu_stack.pop(&first);              \
 cpu_stack.pop(&second);             \
 cpu_stack.push(first * second);     \
 };                                  \
 
 #define DO_DIV {                    \
+if(cpu_stack.Get_Size() < 2)        \
+    return EMPTY_STACK;             \
 cpu_stack.pop(&first);              \
 cpu_stack.pop(&second);             \
-cpu_stack.push(first / second);     \
+cpu_stack.push(second / first);     \
 };                                  \
 
 #define DO_NEG {                    \
@@ -60,6 +71,8 @@ cpu_stack.push(cos(first));         \
 
 #define DO_SQRT {                   \
 cpu_stack.pop(&first);              \
+if(first < 0)                       \
+    return NEGATIVE_RADICAL;        \
 cpu_stack.push(sqrt(first));        \
 };                                  \
 
@@ -94,9 +107,13 @@ return ALL_OK;                      \
 integ = (int) (array[++i]);         \
 i     = integ - 1;                  \
 };                                  \
+//if(num == 23) Change_ret(i + 1);    \
+
 
 #define DO_JA {                             \
 integ = (int) array[++i];                   \
+if(cpu_stack.Get_Size() < 2)                \
+    return EMPTY_STACK;                     \
 cpu_stack.pop(&first);                      \
 cpu_stack.pop(&second);                     \
 if(second > first) {                        \
@@ -106,6 +123,8 @@ i = integ - 1;                              \
 
 #define DO_JAE {                        \
 integ = (int) array[++i];               \
+if(cpu_stack.Get_Size() < 2)            \
+    return EMPTY_STACK;                 \
 cpu_stack.pop(&first);                  \
 cpu_stack.pop(&second);                 \
 if(second >= first) {                   \
@@ -115,6 +134,8 @@ i = integ - 1;                          \
 
 #define DO_JB {                         \
 integ = (int) array[++i];               \
+if(cpu_stack.Get_Size() < 2)            \
+    return EMPTY_STACK;                 \
 cpu_stack.pop(&first);                  \
 cpu_stack.pop(&second);                 \
 if(second < first) {                    \
@@ -124,6 +145,8 @@ i = integ - 1;                          \
 
 #define DO_JBE {                        \
 integ = (int) array[++i];               \
+if(cpu_stack.Get_Size() < 2)            \
+    return EMPTY_STACK;                 \
 cpu_stack.pop(&first);                  \
 cpu_stack.pop(&second);                 \
 if(second <= first) {                   \
@@ -133,6 +156,8 @@ i = integ - 1;                          \
 
 #define DO_JE {                         \
 integ = (int) array[++i];               \
+if(cpu_stack.Get_Size() < 2)            \
+    return EMPTY_STACK;                 \
 cpu_stack.pop(&first);                  \
 cpu_stack.pop(&second);                 \
 if(second == first) {                   \
@@ -142,6 +167,8 @@ i = integ - 1;                          \
 
 #define DO_JNE {                        \
 integ = (int) array[++i];               \
+if(cpu_stack.Get_Size() < 2)            \
+    return EMPTY_STACK;                 \
 cpu_stack.pop(&first);                  \
 cpu_stack.pop(&second);                 \
 if(second != first) {                   \
@@ -149,25 +176,36 @@ i = integ - 1;                          \
 }                                       \
 };                                      \
 
-DEF_CMD( PUSH,  9,    {DO_PUSH})
-DEF_CMD( POP,   10,   {DO_POP})
-DEF_CMD( ADD,   0,    {DO_ADD})
-DEF_CMD( SUB,   1,    {DO_SUB})
-DEF_CMD( MUL,   2,    {DO_MUL})
-DEF_CMD( DIV,   3,    {DO_DIV})
-DEF_CMD( NEG,   4,    {DO_NEG})
-DEF_CMD( SINUS, 5,    {DO_SINUS})
-DEF_CMD( COS,   6,    {DO_COS})
-DEF_CMD( SQRT,  7,    {DO_SQRT})
-DEF_CMD( POW,   8,    {DO_POW})
-DEF_CMD( IN,    11,   {DO_IN})
-DEF_CMD( OUT,   12,   {DO_OUT})
-DEF_CMD( DUMP,  13,   {DO_DUMP})
-DEF_CMD( HLT,   14,   {DO_HLT})
-DEF_CMD( JMP,   15,   {DO_JMP})
-DEF_CMD( JA ,   16,   {DO_JA})
-DEF_CMD( JAE,   17,   {DO_JAE})
-DEF_CMD( JB ,   18,   {DO_JB})
-DEF_CMD( JBE,   19,   {DO_JBE})
-DEF_CMD( JE ,   20,   {DO_JE})
-DEF_CMD( JNE,   21,   {DO_JNE})
+//TODO: function names.
+/*
+#define DO_RET {                        \
+i = cpu_stack.Get_ret() - 1;            \
+};
+*/
+
+DEF_CMD( PUSH,  40,    {DO_PUSH}, 320)
+DEF_CMD( POP,   20,   {DO_POP},  239)
+DEF_CMD( ADD,   0,    {DO_ADD},  201)
+DEF_CMD( SUB,   1,    {DO_SUB},  234)
+DEF_CMD( MUL,   2,    {DO_MUL},  238)
+DEF_CMD( DIV,   3,    {DO_DIV},  227)
+DEF_CMD( NEG,   4,    {DO_NEG},  218)
+DEF_CMD( SINUS, 5,    {DO_SINUS},402)
+DEF_CMD( COS,   6,    {DO_COS},  229)
+DEF_CMD( SQRT,  7,    {DO_SQRT}, 330)
+DEF_CMD( POW,   8,    {DO_POW},  246)
+DEF_CMD( IN,    9,   {DO_IN},   151)
+DEF_CMD( OUT,   10,   {DO_OUT},  248)
+DEF_CMD( DUMP,  11,   {DO_DUMP}, 310)
+DEF_CMD( HLT,   12,   {DO_HLT},  232)
+DEF_CMD( JMP,   21,   {DO_JMP},  231)
+DEF_CMD( JA ,   22,   {DO_JA},   139)
+DEF_CMD( JAE,   23,   {DO_JAE},  208)
+DEF_CMD( JB ,   24,   {DO_JB},   140)
+DEF_CMD( JBE,   25,   {DO_JBE},  209)
+DEF_CMD( JE ,   26,   {DO_JE},   143)
+DEF_CMD( JNE,   27,   {DO_JNE},  221)
+/*
+DEF_CMD( RET,   22,   {DO_RET})
+DEF_CMD( CAL,   23,   {DO_JMP})
+*/
