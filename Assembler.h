@@ -8,6 +8,7 @@
 #include "myStr.h"
 #include "enum.h"
 #include "List_of_mistakes.h"
+#include "Onegin.h"
 
 /*!
 *  \function bool Is_push(const char* str);
@@ -16,6 +17,8 @@
 *  \return true or false
 */
 bool Is_push(const char* str);
+
+bool Is_push_reg(const char* str);
 
 /*!
 *  \function int Assembler(int* number_of_cmds = nullptr);
@@ -33,14 +36,46 @@ int Assembler(int* number_of_cmds = nullptr);
 */
 int ASM_Listing();
 
+/*!
+ * \function bool Is_jmp(const char* str);
+ * \brief function checks if string is jump.
+ * \param str - const char* - command.
+ * \return true if true, false if not.
+ */
+bool Is_jmp(const char* str);
+
+/*!
+ * @function void Fill_marks(simple_string* commands, size_t* number_of_commands, int** pointers);
+ * @brief Function fills the marks in array with commands.
+ * @param commands - simple_string* - array with commands.
+ * @param number_of_commands - size_t* - pointer to number of commands in array.
+ * @param pointers - array with pointers (marks).
+ * @return nothing.
+ */
+void Fill_marks(simple_string* commands, const size_t* number_of_commands, int* pointers);
+
+/*!
+ * @function int Hash(const char* string)
+ * @brief Functions finds hash of command.
+ * @param string
+ * @return sum of chars in command name.
+ */
+int Hash(const char* string);
+
+
 #define DIE fprintf(stderr, "Assertion failed!\nERROR on line %d\n", __LINE__);
 
 #define asserted || DIE
 
+bool Is_reg(const char* str){
+    return str[0] == 'R';
+    //return str[0] == 'R' && str[2] == 'X' && str[1] >= 'A' && str[1] <= 'D';
+}
+
 bool Is_push(const char* str){
     if(str[0] != 'P') return false;
 
-    return str[1] == 'U' && str[2] == 'S' && str[3] == 'H' && str[4] == ' ';
+    return str[1] == 'U' && str[2] == 'S' && str[3] == 'H';
 
 }
 
@@ -48,188 +83,156 @@ bool Is_pop(const char* str){
     if(str[0] != 'P') return false;
 
     return str[1] == 'O' && str[2] == 'P';
+}
 
+bool Is_jmp(const char* str){
+    return str[0] == 'J';
+}
+
+bool Is_push_reg(const char* str){
+    if(str[0] != 'P')                           return false;
+    if(str[5] != 'R' && str[7] != 'X')          return false;
+    if(str[6] - 'A' >= 4 || str[6] - 'A' < 0)   return false;
+
+    return true;
+}
+
+
+int Hash(const char* string) {
+    char c = 1;
+    int result = 0;
+
+    int i = 0;
+    if (string[0] == ' ') ++i;
+
+    for (; c != ' ' && c != '\0'; ++i) {
+        c = string[i];
+        if(c != ' ' && c != '\n') result += (int) c;
+    }
+    return result;
+}
+
+void Fill_marks(simple_string* commands, const size_t* number_of_commands, int* pointers){
+    int arguments = 0;
+    for(int i = 0; i < *number_of_commands; ++i){
+        if(     Is_pop(     commands[i].string) || Is_jmp(commands[i].string)) arguments++;
+        else if( Is_push(    commands[i].string)){
+             if(!Is_push_reg(commands[i].string)) arguments++;
+            arguments++;
+        }
+        if(commands[i].string[1] == ':'){
+            pointers[commands[i].string[0] - '0'] = i + arguments;
+            arguments--;
+            //(*number_of_commands)--;
+        }
+    }
 }
 
 int Assembler(int* number_of_cmds) {
-    FILE* command_file = fopen("command_file.txt", "rb");
-    if (command_file == nullptr) {
-        fprintf(stderr, "Error opening file!\n");
-        return ERROR_OPENING_FILE;
-    }
-
-    size_t size_of_file         = Size_of_file(command_file);
-    size_t number_of_commands   = 0;
-
-    char* command_text = text_from_file(command_file, size_of_file, &number_of_commands);
-    if (command_text == nullptr)    return ERROR_NULL_PTR;
-    if (number_of_commands++ == 0)  return ERROR_EMPTY_FILE;
+    size_t number_of_commands = 0;
+    simple_string* array_with_commands = Make_array_from_text_file("command_file.TXT", &number_of_commands);
 
     FILE* output = fopen("Output_file.txt", "wb");
     if(!output) return ERROR_OPENING_FILE;
 
-    simple_string* commands = (simple_string*) calloc(number_of_commands, sizeof(simple_string));
-    commands[0].string = command_text;
+    int* pointers = (int*) calloc(6, sizeof(int));
+    Fill_marks(array_with_commands, &number_of_commands, pointers);
 
-    int* pointers = (int*) calloc(5, sizeof(int));
-
-    Arrange_str_ptrs(commands, number_of_commands, command_text);
-
-    *number_of_cmds = number_of_commands;
-
-    int shift = 0;
-
+    int reg_number = 0;
+    int chash = 0;
+    int lenstr = 0;
     for(int i = 0; i < number_of_commands; ++i){
-        if(Is_pop(commands[i].string) || commands[i].string[0] == 'J') shift++;
-        if(Is_push(commands[i].string)){
-            if(commands[i].string[5] != 'R') shift++;
-            shift++;
-        }
-        if(commands[i].string[1] == ':'){
-            pointers[commands[i].string[0] - '0'] = i + shift - 1;
-            (*number_of_cmds)--;
-        }
-    }
+        chash = Hash(array_with_commands[i].string);
+        switch (chash) {
+            #define DEF_CMD(name, number, code, hash){                          \
+                case hash:                                                      \
+                    lenstr = strlen(#name) + 1;                                 \
+                    fprintf(output, "%d ", number);                             \
+                    if(Is_jmp(array_with_commands[i].string)){                  \
+                    sscanf(array_with_commands[i].string + lenstr + 1, "%d", &reg_number);\
+                    fprintf(output, "%d ", pointers[reg_number]);               \
+                    continue;                                                   \
+                }                                                               \
+                if(Is_push(array_with_commands[i].string) ||                    \
+                            Is_pop(array_with_commands[i].string)){             \
+                    if(array_with_commands[i].string[lenstr] == 'R')        \
+            fprintf(output, "%d ", array_with_commands[i].string[lenstr + 1] - 'A' + 1);\
+                    else                                                        \
+            fprintf(output, "0 %s ", array_with_commands[i].string + lenstr);   \
+            continue;                                                           \
+            }                                                                   \
+                    break;                                                      \
+        }                                                                       \
 
-    const char* eqlty[] = {"JA", "JAE", "JB", "JBE", "JE", "JNE"};
-
-    int rid = 0;
-    char* str = nullptr;
-    for(int i = 0; i < number_of_commands; ++i) {
-        #define DEF_CMD(name, number, code){                                            \
-                if(Is_push(commands[i].string)) {                                       \
-                    rid =  commands[i].string[6] - 'A' + 1;                             \
-                    str = &commands[i].string[5];                                       \
-                    if(rid < 1 || rid > 4){                                             \
-                        rid = 0;                                                        \
-                        fprintf(output, "9 %d %s", rid, str);                           \
-                    }                                                                   \
-                    else fprintf(output, "9 %d\n", rid);                                \
-                    continue;                                                           \
-                }                                                                       \
-                else if(Is_pop(commands[i].string)) {                                   \
-                    if(commands[i].size <= 5){                                          \
-                        rid = 0;                                                        \
-                        fprintf(output, "10 0\n");                                      \
-                    }                                                                   \
-                    else{                                                               \
-                        rid =  commands[i].string[5] - 'A' + 1;                         \
-                        fprintf(output, "10 %d\n", rid);                                \
-                    }                                                                   \
-                    continue;                                                           \
-                    }                                                                   \
-                    else if(commands[i].string[1] == 'M' &&                             \
-                    commands[i].string[2] == 'P' && commands[i].string[4] == ':'){      \
-                        rid = (commands[i].string[5] - '0');                            \
-                        fprintf(output, "15 %d\n", pointers[rid]);                      \
-                        continue;                                                       \
-                    }                                                                   \
-                    else if(commands[i].string[0] == 'J'){                              \
-                        sscanf(commands[i].string, "%s", str);                          \
-                        for(int j = 0; j < 6; ++j){                                     \
-                            if(str_cmp(str, eqlty[j])){                                 \
-                                rid = (commands[i].string[4 + j%2] - '0');              \
-                                fprintf(output, "%d %d  \n", (j + 16), pointers[rid]);  \
-                                break;                                                  \
-                            }                                                           \
-                        }                                                               \
-                        continue;                                                       \
-                    }                                                                   \
-                    else if(str_cmp_upg(#name, commands[i].string)){                    \
-                        fprintf(output, "%d\n", number);                                \
-                        continue;                                                       \
-                    }                                                                   \
-        }                                                                               \
 
         #include "commands.h"
-
+            default:
+                //printf("%d\n", chash);
+                break;
         #undef DEF_CMD
     }
+    }
 
-
-    fclose(command_file);
-    free(command_text);
-    free(commands);
     fclose(output);
-
-    return ALL_OK;
+    free(pointers);
+    free(array_with_commands);
+    return 2;
 }
 
 int ASM_Listing(){
-    size_t pos = 1;
+    size_t number_of_commands = 0;
+    simple_string* array_with_commands = Make_array_from_simple_text_file("Output_file.txt", &number_of_commands);
+
     FILE* ASM_Listing = fopen("ASM_Listing.txt", "wb");
-    FILE* ASM_Code    = fopen("Output_file.txt", "rb");
-
-    if(!ASM_Listing || !ASM_Code) return ERROR_OPENING_FILE;
-
-    int cmd         = 0;
-    double number   = 0;
-    int rid         = 0;
-    char c          = 0;
 
     const char* regs = "\t\0RAX\0RBX\0RCX\0RDX\0";
     simple_string* rip = (simple_string*) calloc(5, sizeof(simple_string));
     rip[0].string = (char*) regs;
 
     Arrange_str_ptrs(rip, 5, (char*) regs);
-    const char* eqlty[] = {"JA", "JAE", "JB", "JBE", "JE", "JNE"};
 
-    while (!feof(ASM_Code)){
-        fscanf(ASM_Code, "%d", &cmd);
-        if(feof(ASM_Code)) break;
-        #define DEF_CMD(name, num, code) {                                                              \
-            if(cmd == CMD_PUSH){                                                                        \
-                fscanf(ASM_Code, "%d", &rid);                                                           \
-                if(rid == 0) {                                                                          \
-                    fscanf(ASM_Code, "%lf", &number);                                                   \
-                    fprintf(ASM_Listing, "%X\t%d\t%d\t%lf\t\t%s %lf\n",                                 \
-                    pos++, num, rid, number, #name, number);                                            \
-                    }                                                                                   \
-                    else                                                                                \
-                    fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t\t\t%s %s\n",                                 \
-                    pos, num, rid, #name, rip[rid].string);                                             \
-            pos+=2;                                                                                     \
-            continue;                                                                                   \
-            }                                                                                           \
-            else if(cmd == CMD_POP){                                                                    \
-                fscanf(ASM_Code, "%d", &rid);                                                           \
-                if(rid == 0) fprintf(ASM_Listing, "%X\t10\t\t\t\t\t\tPOP\n", pos++);                    \
-                else {                                                                                  \
-                    fprintf(ASM_Listing, "%X\t10\t%d\t\t\t\t\tPOP  %s\n",                               \
-                    pos++, rid, rip[rid].string);                                                       \
-                }                                                                                       \
-                                                                                                        \
-                pos++;                                                                                  \
-                continue;                                                                               \
-                }                                                                                       \
-            else if(cmd == CMD_JMP){                                                                    \
-                fscanf(ASM_Code, "%d", &rid);                                                           \
-                fprintf(ASM_Listing, "%X\t15\t%d\t\t\t\t\tJMP %d\n",                                    \
-                pos++, rid + 1, rid + 1);                                                               \
-                pos++;                                                                                  \
-                continue;                                                                               \
-                }                                                                                       \
-                else if(cmd > 15 && cmd < 22){                                                          \
-                    fscanf(ASM_Code, "%d", &rid);                                                       \
-                    fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t\t\t%s %d\n",                                 \
-                    pos++, cmd, rid, eqlty[cmd - 16], rid);                                             \
-                    continue;                                                                           \
-                                                                                                        \
-                }                                                                                       \
-            else if(cmd == num){                                                                        \
-                fprintf(ASM_Listing, "%X\t%d\t\t\t\t\t\t%s\n", pos++, num, #name);                      \
-                continue;                                                                               \
-            }                                                                                           \
-        }                                                                                               \
+    int command     = 0;
+    int pos         = 1;
+    int arg         = 0;
+    double num      = 0;
+    for(int i = 0; i < number_of_commands; ++i){
+        sscanf(array_with_commands[i].string, "%d", &command);
+        arg = command / 20;
+        switch (command) {
+            #define DEF_CMD(name, number, code, hash){                                                          \
+                case number:                                                                                    \
+                    if(arg == 0){                                                                               \
+                        fprintf(ASM_Listing, "%X\t%d\t\t\t\t%s\n", pos++, number, #name);                       \
+                        break;                                                                                  \
+                    }                                                                                           \
+                    else if(arg == 1){                                                                          \
+                        sscanf(array_with_commands[i++].string, "%*d %d", &command);                            \
+                        if(Is_push(#name) || Is_pop(#name))                                                     \
+                        fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t%s %s\n", pos, number, command, #name, rip[command]);\
+                        else                                                                                    \
+                        fprintf(ASM_Listing, "%X\t%d\t%d\t\t\t%s %d\n", pos, number, command, #name, command);  \
+                        pos += 2;                                                                               \
+                        break;                                                                                  \
+                    }                                                                                           \
+                    else if(arg == 2){                                                                          \
+                        sscanf(array_with_commands[i+=2].string, "%*d %d %lf", &command, &num);                 \
+                        fprintf(ASM_Listing, "%X\t%d\t0\t%.2lf\t%s %lf\n", pos, number, num, #name, num);       \
+                        pos += 3;                                                                               \
+                        break;                                                                                  \
+                    }                                                                                           \
+            }
 
-        #include "commands.h"
-        #undef DEF_CMD
+            #include "commands.h"
+            default:
+                printf("%d\n", command);
+                break;
+            #undef DEF_CMD
+
+        }
     }
 
     fclose(ASM_Listing);
-    fclose(ASM_Code);
-    free(rip);
-
+    free(array_with_commands);
     return ALL_OK;
 }
 
