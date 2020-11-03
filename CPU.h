@@ -35,8 +35,7 @@ enum Registers{
  */
 void CPU_info(const CPU& cpu);
 
-//TODO: copy constructor
-//TODO: delete operator
+
 /*! @class CPU
  *  @brief This CPU executes commands from file with codes of coammnds.
  *
@@ -95,31 +94,42 @@ public:
         int j = 0;
         size_t lenstr = strlen(text);
 
+        double poryadok = 10;
         while(i < lenstr) {
+            poryadok = 10;
             sscanf(text + i, "%lf", &doub);
             array[j++] = doub;
             i+=2;
-            if(doub >= 10) i++;
+            while(doub >= poryadok){
+                i++;
+                poryadok*=10;
+            }
         }
 
         number_of_commands = non;
     };
 
+    double Get_command (int index) const { return array[index]; };
+
 
     /*!
-    *  @method void Work().
+    *  @method int Work().
     *  @brief  Executes commands from given file.
     *
     *  @return an integer - error code.
     */
-    int
-    Work();
+    int Work();
+
+    CPU& operator=(const CPU& cpu) = delete;
+    CPU(const CPU&)                = delete;
+
 
     void Change_ret(int pointer){ ret = pointer; }
 
     [[nodiscard]] const char* Get_name()    const { return name; };
     [[nodiscard]] int Get_version()         const { return version; };
     [[nodiscard]] int Get_id()              const { return id; };
+    [[nodiscard]] int Get_NOC()             const { return number_of_commands; };
     [[nodiscard]] int Get_ret()             const { return ret; };
 
     [[nodiscard]] double Get_reg (int number) const { return reg[number]; };
@@ -133,21 +143,28 @@ public:
 
 };
 
-//TODO: байты
 void CPU_info(const CPU& cpu){
     printf("CPU = [%p], \"%s\"\n", &cpu, cpu.Get_name());
     printf("{\n");
     printf("\tversion = %d\n",      cpu.Get_version());
     printf("\tid = %d\n",           cpu.Get_id());
+
     printf("\tRegisters:\n");
     printf("\t{\n");
-
     printf("\t\tRAX = %lf\n", cpu.Get_reg(RAX));
     printf("\t\tRBX = %lf\n", cpu.Get_reg(RBX));
     printf("\t\tRCX = %lf\n", cpu.Get_reg(RCX));
     printf("\t\tRDX = %lf\n", cpu.Get_reg(RDX));
-
     printf("\t}\n");
+
+    printf("\tArray:\n");
+    printf("\t{\n");
+    for(int i = 0; i < cpu.Get_NOC(); ++i){
+        printf("\t\t%d : %X\n", i, (int) cpu.Get_command(i));
+    }
+    printf("\t}\n");
+
+    printf("}\n");
 }
 
 
