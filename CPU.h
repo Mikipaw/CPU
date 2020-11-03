@@ -94,16 +94,19 @@ public:
         int j = 0;
         size_t lenstr = strlen(text);
 
-        double poryadok = 10;
-        while(i < lenstr) {
-            poryadok = 10;
-            sscanf(text + i, "%lf", &doub);
+        double magnitude = 10;
+        while(pos < lenstr) {
+            magnitude = 10;
+            sscanf(text + pos, "%lf", &doub);
             array[j++] = doub;
-            i+=2;
-            while(doub >= poryadok){
-                i++;
-                poryadok*=10;
+            pos+=2;
+            while(doub >= magnitude){
+                pos++;
+                magnitude*=10;
             }
+            doub*=100;
+            if(      (int) doub % 10  != 0) pos+=3;
+            else if( (int) doub % 100 != 0) pos+=2;
         }
 
         number_of_commands = non;
