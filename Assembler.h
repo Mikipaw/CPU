@@ -73,16 +73,11 @@ bool Is_reg(const char* str){
 }
 
 bool Is_push(const char* str){
-    if(str[0] != 'P') return false;
-
-    return str[1] == 'U' && str[2] == 'S' && str[3] == 'H';
-
+    return !strncmp(str, "PUSH", 4);
 }
 
 bool Is_pop(const char* str){
-    if(str[0] != 'P') return false;
-
-    return str[1] == 'O' && str[2] == 'P';
+    return !strncmp(str, "POP", 3);
 }
 
 bool Is_jmp(const char* str){
