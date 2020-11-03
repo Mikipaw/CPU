@@ -65,52 +65,7 @@ private:
 
 public:
     explicit
-    CPU(size_t num_of_coms, int my_id, const char* new_name):
-        number_of_commands      (num_of_coms),
-        id                      (my_id),
-        reg                     (new double[5]),
-        cpu_stack               (1, "CPU Stack"),
-        mark                    (new int[5]),
-        name                    (new_name)
-        {
-            for(int i = 0; i < 5; ++i) {
-                reg[i] = 0;
-                mark[i] = 0;
-            }
-
-        FILE* input = fopen("Output_file.txt", "rb");
-        assert(input != nullptr);
-
-        size_t size_of_file = Size_of_file(input);
-        size_t non = 0;
-
-        char* text = simple_text_from_file(input, size_of_file + 1, &non);
-        fclose(input);
-
-        array = (double*) calloc(non + 1, sizeof(double));
-
-        double doub = 0;
-        int i = 0;
-        int j = 0;
-        size_t lenstr = strlen(text);
-
-        double magnitude = 10;
-        while(pos < lenstr) {
-            magnitude = 10;
-            sscanf(text + pos, "%lf", &doub);
-            array[j++] = doub;
-            pos+=2;
-            while(doub >= magnitude){
-                pos++;
-                magnitude*=10;
-            }
-            doub*=100;
-            if(      (int) doub % 10  != 0) pos+=3;
-            else if( (int) doub % 100 != 0) pos+=2;
-        }
-
-        number_of_commands = non;
-    };
+        CPU(size_t num_of_coms, int my_id, const char* new_name);
 
     double Get_command (int index) const { return array[index]; };
 
@@ -194,6 +149,52 @@ int CPU::Work(){
     return ALL_OK;
 }
 
+CPU::CPU(size_t num_of_coms, int my_id, const char* new_name):
+number_of_commands      (num_of_coms),
+id                      (my_id),
+reg                     (new double[5]),
+cpu_stack               (1, "CPU Stack"),
+mark                    (new int[5]),
+name                    (new_name)
+{
+    for(int i = 0; i < 5; ++i) {
+        reg[i] = 0;
+        mark[i] = 0;
+    }
+
+    FILE* input = fopen("Output_file.txt", "rb");
+    assert(input != nullptr);
+
+    size_t size_of_file = Size_of_file(input);
+    size_t non = 0;
+
+    char* text = simple_text_from_file(input, size_of_file + 1, &non);
+    fclose(input);
+
+    array = (double*) calloc(non + 1, sizeof(double));
+
+    double doub = 0;
+    int pos = 0;
+    int j = 0;
+    size_t lenstr = strlen(text);
+
+    double magnitude = 10;
+    while(pos < lenstr) {
+        magnitude = 10;
+        sscanf(text + pos, "%lf", &doub);
+        array[j++] = doub;
+        pos+=2;
+        while(doub >= magnitude){
+            pos++;
+            magnitude*=10;
+        }
+        doub*=100;
+        if(      (int) doub % 10  != 0) pos+=3;
+        else if( (int) doub % 100 != 0) pos+=2;
+    }
+
+    number_of_commands = non;
+};
 
 
 #endif //PROC_CPU_H
