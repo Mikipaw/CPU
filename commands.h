@@ -8,14 +8,22 @@ if(integ == 0){                             \
     second = array[++i];                    \
     cpu_stack.push(second);                 \
     }                                       \
-    else {                                  \
-        cpu_stack.push(reg[integ-1]);       \
+else if(integ == 5){                        \
+    second = array[++i];                    \
+    cpu_stack.push(RAM[(int) second]);      \
+}                                           \
+else {                                      \
+    cpu_stack.push(reg[integ-1]);           \
     }                                       \
 };                                          \
 
 #define DO_POP {                        \
 integ = (int) array[++i];               \
 if(integ == 0) cpu_stack.pop();         \
+else if(integ == 5){                    \
+    second = array[++i];                \
+    cpu_stack.pop(&RAM[(int) second]);  \
+}                                       \
 else cpu_stack.pop(&reg[integ-1]);      \
 };                                      \
 
@@ -88,10 +96,13 @@ scanf("%lf", &first);               \
 cpu_stack.push(first);              \
 };                                  \
 
-#define DO_OUT {                    \
-cpu_stack.pop(&first);              \
-printf("\nOutput: %lf\n", first);   \
-};                                  \
+#define DO_OUT {                        \
+cpu_stack.pop(&first);                  \
+if( (int) (first * 100) % 100 == 0)     \
+printf("\nOutput: %d\n", (int) first);  \
+    else                                \
+    printf("\nOutput: %lf\n", first);   \
+};                                      \
 
 #define DO_DUMP {                   \
 CPU_info(*this);                    \
@@ -107,7 +118,7 @@ return ALL_OK;                      \
 integ = (int) (array[++i]);         \
 i     = integ - 1;                  \
 };                                  \
-//if(num == 23) Change_ret(i + 1);    \
+//if(num == 23) Change_ret(i + 1);  \
 
 
 #define DO_JA {                             \
@@ -176,14 +187,8 @@ i = integ - 1;                          \
 }                                       \
 };                                      \
 
-//TODO: function names.
-/*
-#define DO_RET {                        \
-i = cpu_stack.Get_ret() - 1;            \
-};
-*/
 
-DEF_CMD( PUSH,  40,    {DO_PUSH}, 320)
+DEF_CMD( PUSH,  40,   {DO_PUSH}, 320)
 DEF_CMD( POP,   20,   {DO_POP},  239)
 DEF_CMD( ADD,   0,    {DO_ADD},  201)
 DEF_CMD( SUB,   1,    {DO_SUB},  234)
@@ -194,7 +199,7 @@ DEF_CMD( SINUS, 5,    {DO_SINUS},402)
 DEF_CMD( COS,   6,    {DO_COS},  229)
 DEF_CMD( SQRT,  7,    {DO_SQRT}, 330)
 DEF_CMD( POW,   8,    {DO_POW},  246)
-DEF_CMD( IN,    9,   {DO_IN},   151)
+DEF_CMD( IN,    9,    {DO_IN},   151)
 DEF_CMD( OUT,   10,   {DO_OUT},  248)
 DEF_CMD( DUMP,  11,   {DO_DUMP}, 310)
 DEF_CMD( HLT,   12,   {DO_HLT},  232)
@@ -205,7 +210,3 @@ DEF_CMD( JB ,   24,   {DO_JB},   140)
 DEF_CMD( JBE,   25,   {DO_JBE},  209)
 DEF_CMD( JE ,   26,   {DO_JE},   143)
 DEF_CMD( JNE,   27,   {DO_JNE},  221)
-/*
-DEF_CMD( RET,   22,   {DO_RET})
-DEF_CMD( CAL,   23,   {DO_JMP})
-*/
