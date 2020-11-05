@@ -54,10 +54,10 @@ private:
     size_t number_of_commands = 0;
     const char* name = "Unnamed CPU";
 
-
     double* reg     = nullptr;
     double* array   = nullptr;
     int* mark       = nullptr;
+    double* RAM     = nullptr;
 
     int ret = 0;
     int id = 0;
@@ -65,7 +65,7 @@ private:
 
 public:
     explicit
-        CPU(size_t num_of_coms, int my_id, const char* new_name);
+    CPU(size_t num_of_coms, int my_id, const char* new_name);
 
     double Get_command (int index) const { return array[index]; };
 
@@ -90,6 +90,8 @@ public:
     [[nodiscard]] int Get_NOC()             const { return number_of_commands; };
     [[nodiscard]] int Get_ret()             const { return ret; };
 
+    [[nodiscard]] Stack<double> Get_stack() const { return cpu_stack; };
+
     [[nodiscard]] double Get_reg (int number) const { return reg[number]; };
 
     ~CPU(){
@@ -97,6 +99,7 @@ public:
         //nullptr
         free(array);
         free(mark);
+        free(RAM);
     }
 
 };
@@ -117,8 +120,8 @@ void CPU_info(const CPU& cpu){
 
     printf("\tArray:\n");
     printf("\t{\n");
-    for(int i = 0; i < cpu.Get_NOC(); ++i){
-        printf("\t\t%d : %X\n", i, (int) cpu.Get_command(i));
+    for(int i = 0; i < cpu.Get_NOC(); ++i) {
+        printf("\t%d : %X\n", i, (int) cpu.Get_command(i));
     }
     printf("\t}\n");
 
@@ -155,7 +158,8 @@ id                      (my_id),
 reg                     (new double[5]),
 cpu_stack               (1, "CPU Stack"),
 mark                    (new int[5]),
-name                    (new_name)
+name                    (new_name),
+RAM                     (new double[200])
 {
     for(int i = 0; i < 5; ++i) {
         reg[i] = 0;
