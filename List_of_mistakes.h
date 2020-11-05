@@ -12,6 +12,8 @@ enum List_of_mistakes{
     ERROR_EMPTY_FILE,       //3
     ERROR_UNKNOWN_COMMAND,  //4
     EXIT_CODE,              //5
+    EMPTY_STACK,            //6
+    NEGATIVE_RADICAL,       //7
 };
 
 #endif //PROC_LIST_OF_MISTAKES_H
